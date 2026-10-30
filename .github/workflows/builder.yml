@@ -77,7 +77,7 @@ jobs:
           echo "Runners de $tag"
           mkdir -p runners
           gh release download "$tag" -R "$GITHUB_REPOSITORY" -p 'verb-runner-*' -p 'SHA256SUMS.txt' -D runners
-          (cd runners && sha256sum -c SHA256SUMS.txt)
+          (cd runners && tr -d '\r' < SHA256SUMS.txt | sha256sum -c -)
           chmod +x runners/verb-runner-macos runners/verb-runner-linux
           ls -l runners
 
