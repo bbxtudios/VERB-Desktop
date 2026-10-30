@@ -76,3 +76,4 @@ jobs:
         with:
           files: artifacts/*
           generate_release_notes: true
+          make_latest: true  # el enlace releases/latest/download/<archivo> apunta siempre a la última del editor

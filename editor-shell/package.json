@@ -1,7 +1,7 @@
 {
   "name": "verb-editor-shell",
   "productName": "VERB Studio",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Carcasa de escritorio (Electron) del editor VERB Studio: carga studio.verb-engine.com",
   "private": true,
   "main": "dist/main.js",
@@ -55,7 +55,7 @@
           ]
         }
       ],
-      "artifactName": "VERB-Studio-Setup-${version}.${ext}"
+      "artifactName": "VERB-Studio-Setup.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -74,14 +74,14 @@
       ],
       "category": "public.app-category.developer-tools",
       "identity": null,
-      "artifactName": "VERB-Studio-${version}-mac.${ext}"
+      "artifactName": "VERB-Studio-mac.${ext}"
     },
     "linux": {
       "target": [
         "AppImage"
       ],
       "category": "Development",
-      "artifactName": "VERB-Studio-${version}-linux.${ext}"
+      "artifactName": "VERB-Studio-linux.${ext}"
     }
   }
 }
