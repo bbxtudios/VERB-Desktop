@@ -15,7 +15,7 @@ writeFileSync(proj, Buffer.from('PK-demo'));
 const page = `<!doctype html><title>t</title><script>
 (async () => {
   const b = window.verbDesktop;
-  const r = { has: !!b };
+  const r = { has: !!b, picker: 'showDirectoryPicker' in window, openPicker: 'showOpenFilePicker' in window, secure: isSecureContext };
   if (b) {
     r.version = b.version; r.app = b.app;
     r.fns = ['takePendingFiles', 'onOpenFile', 'openExternal'].every((k) => typeof b[k] === 'function');
@@ -46,6 +46,7 @@ globalThis.__kill();
 
 const checks = [
   ['puente presente', result.has],
+  ['showDirectoryPicker disponible (carpetas reales)', result.picker],
   ['versión 1', result.version === 1],
   ['métodos', result.fns],
   ['plataforma', ['win32', 'darwin', 'linux'].includes(result.app?.platform)],
