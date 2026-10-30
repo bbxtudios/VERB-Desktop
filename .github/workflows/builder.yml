@@ -1,0 +1,202 @@
+name: VERB Builder
+
+# Compila el VERB Builder (Tauri) de VERB Studio para Windows, macOS y Linux. El código del Builder NO está en este repo: vive en el repo
+# privado de VERB Studio y aquí se descarga solo mientras dura la compilación (clave de solo lectura). Solo se publican los binarios.
+# Cada Builder lleva dentro los Runners de los tres sistemas (los descarga de una Release `runner-v*` de este repo; ver runner.yml).
+# Solo manual (nunca en PR ni en push). No necesita RUNNER_KEY_JSON: el Builder solo mete Runners ya compilados.
+#
+# Secreto necesario: STUDIO_DEPLOY_KEY (la misma deploy key de solo lectura que usa runner.yml).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versión del Builder a publicar (p. ej. 0.2.0). Vacío = solo compilar y guardar artefactos, sin Release.'
+        required: false
+        default: ''
+      runner:
+        description: 'Etiqueta de la Release del Runner a meter dentro (p. ej. runner-v0.1.0). Vacío = la última runner-v*.'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+env:
+  STUDIO_REPO: bbxtudios/adventure-generator
+  SITE_URL: https://studio.verb-engine.com
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            out: verb-builder-windows.exe
+          - os: macos-latest
+            out: verb-builder-macos.dmg
+          - os: ubuntu-22.04
+            out: verb-builder-linux.tar.gz
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ env.STUDIO_REPO }}
+          ssh-key: ${{ secrets.STUDIO_DEPLOY_KEY }}
+          path: studio
+          fetch-depth: 1
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: studio
+      - name: Dependencias de Tauri (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libsoup-3.0-dev patchelf xdg-utils
+
+      - name: Runners (de la Release runner-v* de este repo)
+        run: |
+          tag="${{ inputs.runner }}"
+          if [ -z "$tag" ]; then
+            tag=$(gh release list -R "$GITHUB_REPOSITORY" --limit 50 --json tagName --jq '[.[] | select(.tagName | startswith("runner-v"))][0].tagName')
+          fi
+          [ -n "$tag" ] || { echo "No hay ninguna Release runner-v* en $GITHUB_REPOSITORY (lanza antes el workflow «VERB Runner» con versión)."; exit 1; }
+          echo "Runners de $tag"
+          mkdir -p runners
+          gh release download "$tag" -R "$GITHUB_REPOSITORY" -p 'verb-runner-*' -p 'SHA256SUMS.txt' -D runners
+          (cd runners && sha256sum -c SHA256SUMS.txt)
+          chmod +x runners/verb-runner-macos runners/verb-runner-linux
+          ls -l runners
+
+      - name: Versión del Builder
+        id: ver
+        working-directory: studio
+        run: |
+          v="${{ inputs.version }}"
+          if [ -z "$v" ]; then v=$(node scripts/builder-release.mjs --version-only | tail -n 1 | tr -d '\r'); fi
+          echo "VERB Builder $v"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Compilar y empaquetar (Windows)
+        if: runner.os == 'Windows'
+        working-directory: studio
+        env:
+          VERB_RUNNERS_DIR: ${{ github.workspace }}/runners
+          VERB_BUILDER_VERSION: ${{ steps.ver.outputs.version }}
+          VERB_SITE_URL: ${{ env.SITE_URL }}
+        run: |
+          cargo build -p verb-builder --release
+          mkdir -p ../out
+          cp target/release/verb-builder.exe "../out/${{ matrix.out }}"
+
+      - name: Compilar y empaquetar (Linux)
+        if: runner.os == 'Linux'
+        working-directory: studio
+        env:
+          VERB_RUNNERS_DIR: ${{ github.workspace }}/runners
+          VERB_BUILDER_VERSION: ${{ steps.ver.outputs.version }}
+          VERB_SITE_URL: ${{ env.SITE_URL }}
+        run: |
+          cargo build -p verb-builder --release
+          mkdir -p ../out
+          tar -czf "../out/${{ matrix.out }}" -C target/release verb-builder
+
+      - name: Compilar y empaquetar (macOS, .app universal dentro de un .dmg)
+        if: runner.os == 'macOS'
+        working-directory: studio
+        env:
+          VERB_RUNNERS_DIR: ${{ github.workspace }}/runners
+          VERB_BUILDER_VERSION: ${{ steps.ver.outputs.version }}
+          VERB_SITE_URL: ${{ env.SITE_URL }}
+        run: |
+          for t in aarch64-apple-darwin x86_64-apple-darwin; do cargo build -p verb-builder --release --target "$t"; done
+          app="dist-mac/VERB Builder.app"
+          mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" ../out
+          lipo -create -output "$app/Contents/MacOS/verb-builder" target/aarch64-apple-darwin/release/verb-builder target/x86_64-apple-darwin/release/verb-builder
+          # Icono .icns desde el PNG
+          iconset="$RUNNER_TEMP/icon.iconset"; mkdir -p "$iconset"
+          for s in 16 32 64 128 256 512; do
+            sips -z $s $s apps/builder/icons/icon.png --out "$iconset/icon_${s}x${s}.png" >/dev/null
+            sips -z $((s*2)) $((s*2)) apps/builder/icons/icon.png --out "$iconset/icon_${s}x${s}@2x.png" >/dev/null
+          done
+          iconutil -c icns "$iconset" -o "$app/Contents/Resources/icon.icns"
+          cat > "$app/Contents/Info.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>CFBundleExecutable</key><string>verb-builder</string>
+            <key>CFBundleIdentifier</key><string>studio.verb.builder</string>
+            <key>CFBundleName</key><string>VERB Builder</string>
+            <key>CFBundleDisplayName</key><string>VERB Builder</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>CFBundleShortVersionString</key><string>${{ steps.ver.outputs.version }}</string>
+            <key>CFBundleVersion</key><string>${{ steps.ver.outputs.version }}</string>
+            <key>CFBundleIconFile</key><string>icon</string>
+            <key>LSMinimumSystemVersion</key><string>10.15</string>
+            <key>NSHighResolutionCapable</key><true/>
+            <key>CFBundleDocumentTypes</key><array><dict>
+              <key>CFBundleTypeName</key><string>Juego exportado de VERB Studio</string>
+              <key>CFBundleTypeExtensions</key><array><string>verbgame</string></array>
+              <key>CFBundleTypeRole</key><string>Viewer</string>
+            </dict></array>
+          </dict></plist>
+          PLIST
+          # Firma ad-hoc (sin certificado): sin ella, macOS en Apple Silicon dice que la app está dañada.
+          codesign --force --deep --sign - "$app"
+          hdiutil create -volname "VERB Builder" -srcfolder dist-mac -ov -format UDZO "../out/${{ matrix.out }}"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.out }}
+          path: out/${{ matrix.out }}
+          if-no-files-found: error
+
+  release:
+    if: inputs.version != ''
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Sumas y verb-builder.json
+        working-directory: artifacts
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          sha256sum verb-builder-* > SHA256SUMS.txt
+          node -e '
+            const fs = require("fs"), crypto = require("crypto");
+            const v = process.env.VERSION, base = `https://github.com/${process.env.GITHUB_REPOSITORY}/releases/download/builder-v${v}/`;
+            const entry = (f) => ({ url: base + f, sha256: crypto.createHash("sha256").update(fs.readFileSync(f)).digest("hex"), size: fs.statSync(f).size });
+            const json = {
+              version: v,
+              date: new Date().toISOString().slice(0, 10),
+              downloads: { windows: entry("verb-builder-windows.exe"), macos: entry("verb-builder-macos.dmg"), linux: entry("verb-builder-linux.tar.gz") },
+              page: `${process.env.SITE_URL}/docs/referencia/publicar.html#escritorio`,
+            };
+            fs.writeFileSync("verb-builder.json", JSON.stringify(json, null, 2) + "\n");
+          '
+          cat verb-builder.json
+      - uses: softprops/action-gh-release@v3
+        with:
+          tag_name: builder-v${{ inputs.version }}
+          name: VERB Builder ${{ inputs.version }}
+          files: artifacts/*
+          make_latest: false  # «latest» es solo para la carcasa del editor (editor-v*)

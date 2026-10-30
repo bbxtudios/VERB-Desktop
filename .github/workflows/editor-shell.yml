@@ -58,6 +58,7 @@ jobs:
             editor-shell/release/*.exe
             editor-shell/release/*.dmg
             editor-shell/release/*.AppImage
+            editor-shell/release/*.blockmap
             editor-shell/release/latest*.yml
           if-no-files-found: error
 

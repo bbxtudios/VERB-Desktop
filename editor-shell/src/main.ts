@@ -5,6 +5,7 @@
 import { app, BrowserWindow, ipcMain, Menu, shell, type IpcMainInvokeEvent } from 'electron';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { autoUpdater } from 'electron-updater';
 
 const EDITOR_URL = 'https://studio.verb-engine.com';
 /** Solo sin empaquetar: apuntar a otro editor (p. ej. el servidor de desarrollo). */
@@ -119,10 +120,24 @@ function createWindow(): void {
   wc.on('did-fail-load', (_e, code, _d, url, isMainFrame) => {
     if (isMainFrame && code !== -3 && isEditorUrl(url)) void win?.loadURL(errorPage(startUrl));
   });
-  wc.session.setPermissionRequestHandler((contents, permission, cb) => {
-    cb(isEditorUrl(contents.getURL()) && ['fullscreen', 'clipboard-sanitized-write', 'clipboard-read'].includes(permission));
-  });
+  // 'fileSystem' = File System Access API (elegir y guardar en carpetas reales con showDirectoryPicker): el editor lo usa en Chrome.
+  const allowed = ['fullscreen', 'clipboard-sanitized-write', 'clipboard-read', 'fileSystem'];
+  wc.session.setPermissionRequestHandler((contents, permission, cb) => cb(isEditorUrl(contents.getURL()) && allowed.includes(permission)));
+  wc.session.setPermissionCheckHandler((contents, permission, origin) => isEditorUrl(contents ? contents.getURL() : origin) && allowed.includes(permission));
   void win.loadURL(startUrl);
+}
+
+/**
+ * Actualizador de la carcasa (no del editor, que se actualiza solo desde la web). Mira la última Release «editor-v*» de GitHub
+ * (releases/latest/download/latest*.yml), descarga en segundo plano y se instala al cerrar la app. Solo en la app instalada.
+ * En macOS queda apagado mientras la app no esté firmada (Squirrel.Mac lo exige).
+ */
+function startUpdater(): void {
+  if (!app.isPackaged || process.platform === 'darwin' || process.env.VERB_NO_UPDATE) return;
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on('error', () => { /* sin conexión o sin Release: se reintenta en el próximo arranque */ });
+  void autoUpdater.checkForUpdates().catch(() => undefined);
 }
 
 /** Sin barra de menús en Windows y Linux (la web ya lo trae todo). En macOS hace falta un menú mínimo para Salir, copiar y pegar. */
@@ -130,6 +145,10 @@ function buildMenu(): void {
   if (process.platform !== 'darwin') { Menu.setApplicationMenu(null); return; }
   Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]));
 }
+
+// Sin empaquetar (npm run dev / pruebas) la app usa sus propios datos: así no comparte el bloqueo de instancia única ni los datos con la
+// app instalada, y las pruebas no le abren archivos a la app real del usuario.
+if (!app.isPackaged) app.setPath('userData', path.join(app.getPath('appData'), 'VERB Studio (dev)'));
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -143,6 +162,7 @@ if (!app.requestSingleInstanceLock()) {
     buildMenu();
     deliver(process.argv.slice(1));
     createWindow();
+    startUpdater();
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
   });
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
