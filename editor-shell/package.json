@@ -19,9 +19,9 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "electron": "^38.0.0",
+    "electron": "^45.1.0",
     "typescript": "^5.6.0",
-    "electron-builder": "^26.0.0"
+    "electron-builder": "^26.18.0"
   },
   "build": {
     "appId": "com.verbengine.studio",
