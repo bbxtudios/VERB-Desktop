@@ -1,7 +1,7 @@
 {
   "name": "verb-editor-shell",
   "productName": "VERB Studio",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Carcasa de escritorio (Electron) del editor VERB Studio: carga studio.verb-engine.com",
   "private": true,
   "main": "dist/main.js",

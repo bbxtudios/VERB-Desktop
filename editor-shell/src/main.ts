@@ -2,7 +2,7 @@
  * Proceso principal de la carcasa. Carga el editor (https://studio.verb-engine.com) en una ventana segura y sirve el puente
  * `window.verbDesktop` v1 (ver `preload.ts` y el contrato en VERB Studio: `apps/studio/src/lib/desktop.ts`).
  */
-import { app, BrowserWindow, ipcMain, Menu, shell, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type IpcMainInvokeEvent } from 'electron';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { autoUpdater } from 'electron-updater';
@@ -140,8 +140,19 @@ function startUpdater(): void {
   if (!app.isPackaged || process.platform === 'darwin' || process.env.VERB_NO_UPDATE) return;
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.on('error', () => { /* sin conexión o sin Release: se reintenta en el próximo arranque */ });
-  void autoUpdater.checkForUpdates().catch(() => undefined);
+  autoUpdater.on('error', () => { /* sin conexión o sin Release: se reintenta más tarde */ });
+  autoUpdater.on('update-downloaded', (info) => {
+    const w = win && !win.isDestroyed() ? win : undefined;
+    const opts = {
+      type: 'info' as const, title: 'VERB Studio', buttons: ['Reiniciar ahora', 'Más tarde'], defaultId: 0, cancelId: 1,
+      message: `Hay una versión nueva de VERB Studio (v${info.version}).`,
+      detail: 'Reinicia la aplicación para actualizarla. Si eliges «Más tarde», se instalará al cerrarla.',
+    };
+    void (w ? dialog.showMessageBox(w, opts) : dialog.showMessageBox(opts)).then((r) => { if (r.response === 0) autoUpdater.quitAndInstall(); });
+  });
+  const check = () => void autoUpdater.checkForUpdates().catch(() => undefined);
+  check();
+  setInterval(check, 4 * 60 * 60 * 1000); // también con la app abierta mucho tiempo
 }
 
 /** Sin barra de menús en Windows y Linux (la web ya lo trae todo). En macOS hace falta un menú mínimo para Salir, copiar y pegar. */
