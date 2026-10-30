@@ -5,7 +5,7 @@ Repo **público** de las apps de escritorio de VERB. Habla con el usuario en **e
 ## Qué es
 
 - **Carcasa del editor** (`editor-shell/`, Electron): una ventana que carga `https://studio.verb-engine.com` (VERB Studio, el editor web de aventuras gráficas). **No lleva el código del editor**: se actualiza solo al desplegar la web. Añade lo propio del escritorio por un puente (`window.verbDesktop`): abrir `.verbproj`/`.verbgame` con doble clic, carpetas reales, menús, abrir enlaces en el navegador del sistema.
-- **VERB Runner** (`runner/` + `crates/verbpack`, Tauri v2; **aún no está aquí**, hoy vive en VERB Studio): el ejecutable genérico de cada juego exportado. Más adelante se mueve a este repo (ver `plans/carcasa.md`).
+- **VERB Runner** (Tauri v2): su código **NO está en este repo**; vive en el repo **privado** de VERB Studio (`apps/runner`, `crates/verbpack`, y el Builder en `apps/builder`) y no debe traerse aquí (haría público el formato de cifrado y el enmascarado de la clave). Aquí solo hay un workflow (`.github/workflows/runner.yml`, manual) que descarga ese repo con una clave de solo lectura, compila el Runner para Windows, macOS y Linux y publica los binarios en una Release `runner-v*`.
 - Asociaciones de archivo: la carcasa se registra solo para `.verbproj`; `.verbgame` lo abre el VERB Builder (no registrarlo aquí).
 - Por qué Electron para el editor: lleva Chromium igual en Windows, macOS y Linux (el editor usa File System Access, Web Locks, OPFS, PixiJS…). Por qué Tauri para el Runner: pesa pocos MB y el motor del juego no necesita lo exclusivo de Chrome.
 
@@ -13,8 +13,6 @@ Repo **público** de las apps de escritorio de VERB. Habla con el usuario en **e
 
 ```
 editor-shell/        Electron: main, preload (contextBridge), electron-builder
-runner/              Tauri v2: el VERB Runner (pendiente de traer)
-crates/verbpack/     Rust: leer/descifrar paquetes (.dat), partidas .verbsave (pendiente de traer)
 .github/workflows/   Actions: compilar Windows, macOS y Linux
 plans/               Planes (carcasa.md)
 ```
@@ -24,14 +22,14 @@ plans/               Planes (carcasa.md)
 Carcasa (fase 1 hecha; en `editor-shell/`):
 
 - `npm install` · `npm run dev` (compila y abre Electron cargando el editor; `VERB_EDITOR_URL=http://localhost:…` para apuntar a otro editor, solo sin empaquetar) · `npm run typecheck` · `npm test` (prueba de humo: el puente v1 y un `.verbproj` pendiente). `npm run dist:win` (o `dist:mac` / `dist:linux`, cada uno en su sistema) genera el instalador en `editor-shell/release/`; las Actions lo hacen para los tres.
-- Runner (cuando llegue): `cargo test` en la raíz del workspace, `cargo tauri build` en `runner/`.
+- Runner: Actions → «VERB Runner» → Run workflow (campo versión vacío = solo compilar; con versión, publica `runner-v<versión>`).
 
 ## Reglas
 
 - Idioma: español en conversación, comentarios y documentación.
 - **No hacer commit ni push salvo que el usuario lo pida.** Se trabaja en `main`.
 - **GitHub Actions SÍ en este repo** (público = gratis): compilan Windows, macOS y Linux y publican releases. El repo del editor sigue privado y sin CI.
-- **La clave del Runner NUNCA en el repo** (ni en `.secrets/`, ni en ejemplos, ni en logs): solo como **secreto de GitHub**, inyectada al compilar. Lo mismo para certificados de firma (Windows, notarización de Apple) y tokens.
+- **La clave del Runner NUNCA en el repo** (ni en `.secrets/`, ni en ejemplos, ni en logs): solo como **secreto de GitHub** (`RUNNER_KEY_JSON`), inyectada al compilar. Lo mismo la clave de lectura del repo privado (`STUDIO_DEPLOY_KEY`). El workflow del Runner es solo manual (`workflow_dispatch`), nunca en PR. Lo mismo para certificados de firma (Windows, notarización de Apple) y tokens.
 - Modo ligero: cambios directos y explicados, sin baterías de pruebas pesadas ni prediseños largos salvo que el usuario los pida.
 - No implementar una fase del plan sin el visto bueno del usuario.
 
