@@ -45,6 +45,10 @@ jobs:
           ssh-key: ${{ secrets.STUDIO_DEPLOY_KEY }}
           path: studio
           fetch-depth: 1
+      - name: Carpeta dist del Runner (en VERB Studio está en .gitignore y Tauri la exige)
+        run: |
+          mkdir -p studio/apps/runner/dist
+          echo '<!doctype html><title>VERB Runner</title>' > studio/apps/runner/dist/index.html
       - uses: actions/setup-node@v7
         with:
           node-version: 22
