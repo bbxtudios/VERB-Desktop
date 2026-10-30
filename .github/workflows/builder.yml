@@ -200,3 +200,18 @@ jobs:
           name: VERB Builder ${{ inputs.version }}
           files: artifacts/*
           make_latest: false  # «latest» es solo para la carcasa del editor (editor-v*)
+      # Release fija «builder-latest» (prelanzamiento, nunca es la latest del editor): siempre lleva la ÚLTIMA versión del Builder con nombres y
+      # direcciones que no cambian. Sirve para (1) el aviso de versión nueva del propio Builder (lee su verb-builder.json) y (2) los enlaces de
+      # descarga de la documentación y la landing, que así no hay que tocar en cada versión.
+      - name: Actualizar builder-latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release view builder-latest -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create builder-latest -R "$GITHUB_REPOSITORY" --prerelease --latest=false \
+              --title "VERB Builder (última versión)" --notes "Siempre la última versión del VERB Builder (enlaces fijos)."
+          gh release edit builder-latest -R "$GITHUB_REPOSITORY" --prerelease --latest=false \
+            --notes "Siempre la última versión del VERB Builder: ${VERSION} (release builder-v${VERSION}). Los archivos de esta Release se sobrescriben en cada versión; sus enlaces no cambian."
+          gh release upload builder-latest -R "$GITHUB_REPOSITORY" --clobber \
+            artifacts/verb-builder-windows.exe artifacts/verb-builder-macos.dmg artifacts/verb-builder-linux.tar.gz artifacts/verb-builder.json artifacts/SHA256SUMS.txt
