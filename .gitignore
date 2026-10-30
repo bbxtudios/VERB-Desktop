@@ -34,3 +34,6 @@ desktop.ini
 # Herramientas locales
 .codegraph/
 .claude/settings.local.json
+
+# Planes de trabajo (solo locales, no se publican)
+plans/
