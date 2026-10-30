@@ -1,0 +1,87 @@
+{
+  "name": "verb-editor-shell",
+  "productName": "VERB Studio",
+  "version": "0.1.0",
+  "description": "Carcasa de escritorio (Electron) del editor VERB Studio: carga studio.verb-engine.com",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p .",
+    "dev": "npm run build && electron .",
+    "start": "electron .",
+    "typecheck": "tsc -p . --noEmit",
+    "test": "npm run build && node test/smoke.mjs",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run dist:win",
+    "dist:win": "npm run build && electron-builder --win --publish never",
+    "dist:mac": "npm run build && electron-builder --mac --publish never",
+    "dist:linux": "npm run build && electron-builder --linux --publish never"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "electron": "^38.0.0",
+    "typescript": "^5.6.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.verbengine.studio",
+    "productName": "VERB Studio",
+    "copyright": "VERB",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**",
+      "build/icon.png",
+      "package.json"
+    ],
+    "icon": "build/icon.png",
+    "fileAssociations": [
+      {
+        "ext": "verbproj",
+        "name": "Copia de proyecto de VERB Studio",
+        "description": "Copia de proyecto de VERB Studio",
+        "role": "Editor",
+        "icon": "build/icon.png"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "VERB-Studio-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools",
+      "identity": null,
+      "artifactName": "VERB-Studio-${version}-mac.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Development",
+      "artifactName": "VERB-Studio-${version}-linux.${ext}"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+# Dependencias y compilados
+node_modules/
+dist/
+out/
+release/
+target/
+*.tsbuildinfo
+
+# Secretos y certificados (la clave del Runner y la firma van SOLO como secretos de GitHub)
+.secrets/
+.env
+.env.*
+*.pfx
+*.p12
+*.pem
+*.key
+*.cer
+*.provisionprofile
+
+# Registros y temporales
+*.log
+npm-debug.log*
+.cache/
+*.tmp
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+
+# Herramientas locales
+.codegraph/
+.claude/settings.local.json
