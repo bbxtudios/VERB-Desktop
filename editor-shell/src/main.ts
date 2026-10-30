@@ -101,6 +101,10 @@ function createWindow(): void {
   win.on('closed', () => { win = null; });
 
   const wc = win.webContents;
+  // El título de la ventana lleva la versión de la carcasa: «<título de la página> · v0.1.2».
+  const withVersion = (t: string): string => `${t || 'VERB Studio'} · v${app.getVersion()}`;
+  win.setTitle(withVersion(''));
+  wc.on('page-title-updated', (e, title) => { e.preventDefault(); win?.setTitle(withVersion(title)); });
   wc.on('before-input-event', (e, i) => {
     if (i.type !== 'keyDown') return;
     if (i.key === 'F11') { win?.setFullScreen(!win.isFullScreen()); e.preventDefault(); }
