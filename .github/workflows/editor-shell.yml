@@ -1,13 +1,12 @@
 name: Editor de escritorio
 
-# Compila la carcasa Electron en Windows, macOS y Linux. En cada push/PR que toque editor-shell/ solo comprueba y empaqueta;
-# con una etiqueta editor-v* (p. ej. editor-v0.1.0) además crea una Release con los instaladores.
+# Compila la carcasa Electron en Windows, macOS y Linux. Con una etiqueta editor-v* (p. ej. editor-v0.1.0) compila y crea una Release
+# con los instaladores; en un PR que toque editor-shell/ solo comprueba y empaqueta. Un push suelto a main NO lo lanza (así, al publicar
+# una versión —commit + etiqueta en el mismo push— solo sale una ejecución). A mano: Actions → Run workflow.
 # Sin firmar todavía: los certificados (Windows) y la notarización (Apple) irán como secretos de GitHub, nunca en el repo.
 
 on:
   push:
-    branches: [main]
-    paths: ['editor-shell/**', '.github/workflows/editor-shell.yml']
     tags: ['editor-v*']
   pull_request:
     paths: ['editor-shell/**', '.github/workflows/editor-shell.yml']
