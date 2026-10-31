@@ -31,4 +31,4 @@ Las GitHub Actions compilan los tres sistemas; con una etiqueta `editor-v…` pu
 
 ## Licencia
 
-Por decidir.
+VERB es gratis de usar, pero **no es código abierto**: licencia propietaria, todos los derechos reservados. Puedes usar las aplicaciones y repartir el Runner (sin modificar) con los juegos que crees; no se permite copiar, modificar ni redistribuir el código de este repositorio. Los componentes de terceros (Electron, etc.) mantienen sus propias licencias. Texto completo en [LICENSE](LICENSE).

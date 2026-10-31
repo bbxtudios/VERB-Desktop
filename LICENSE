@@ -1,0 +1,17 @@
+VERB Studio Desktop - Proprietary license (free to use)
+
+Copyright (c) 2026 VERB (bbxtudios). All rights reserved.
+
+This repository and the applications built from it (VERB Studio for desktop, the VERB Runner and the VERB Builder) are NOT open source.
+
+1. Free use. You may download and use the compiled applications published in this repository's Releases free of charge, for personal or commercial purposes.
+
+2. Games you make. Games, projects and content you create with VERB are yours. You may distribute the VERB Runner, unmodified, together with the games you build with the VERB Builder.
+
+3. Restrictions. Except as stated above or as permitted by applicable law, you may not copy, modify, merge, publish, sell, sublicense or redistribute the source code, scripts or configuration in this repository, or the applications themselves, nor reverse engineer them, in whole or in part, without prior written permission from the copyright holder.
+
+4. Third-party software. The applications include third-party components (for example Electron and Chromium). Those components remain under their own licenses, whose notices are included with the applications (for example LICENSE.electron.txt, LICENSES.chromium.html and THIRD-PARTY-NOTICES.txt). Nothing in this license limits your rights under them.
+
+5. No warranty. The software is provided "as is", without warranty of any kind, express or implied, including but not limited to merchantability, fitness for a particular purpose and non-infringement. In no event shall the copyright holder be liable for any claim, damages or other liability arising from the use of the software.
+
+All rights not expressly granted are reserved.
