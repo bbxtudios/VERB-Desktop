@@ -218,7 +218,12 @@ async function tres(browser) {
     await page.waitForTimeout(8000);
     const p = await mirar(page);
     // Estas máquinas no tienen tarjeta gráfica: si WebGL no arranca es aviso, no fallo del plugin.
-    check('WebGL de un plugin: se ve el cubo 3D', p.center[0] > 200 && p.center[1] < 40, String(p.center), true);
+    const cubo = p.center[0] > 200 && p.center[1] < 40;
+    check('WebGL de un plugin: se ve el cubo 3D', cubo, String(p.center), true);
+    if (!cubo) {
+      const menu = await page.locator(START).first().waitFor({ timeout: 10000 }).then(() => true, () => false);
+      check('Sin WebGL no se queda en negro: vuelve el menú del motor', menu || p.center.some((c) => c > 0), String(p.center));
+    }
   } finally {
     await ctx.close();
     srv.close();
