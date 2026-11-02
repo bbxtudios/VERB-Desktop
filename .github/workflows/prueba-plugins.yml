@@ -1,0 +1,32 @@
+name: Prueba de plugins
+
+# Comprueba los plugins de VERB Studio en WebKit de macOS y Linux, el motor web del Runner en esos sistemas.
+# Usa solo la web pública (studio.verb-engine.com): no descarga código privado, no necesita secretos y no guarda archivos.
+# Solo manual: nadie de fuera puede lanzarlo y no corre en PR ni en push.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prueba:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+        working-directory: prueba-plugins
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium webkit
+      - run: node run.mjs

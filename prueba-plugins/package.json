@@ -1,0 +1,9 @@
+{
+  "name": "verb-prueba-plugins",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "jszip": "3.10.1",
+    "playwright": "1.64.0"
+  }
+}
