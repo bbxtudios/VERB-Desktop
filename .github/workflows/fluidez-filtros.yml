@@ -2,16 +2,16 @@ name: Fluidez de los filtros de pantalla
 
 # Mide en macOS y Linux, con las máquinas de GitHub, cuánto cuesta el filtro CRT del plugin «Filtros de pantalla» de VERB Studio: sin filtro,
 # CRT completo y CRT ligero, y qué decide el «vigilante de fluidez». El código de VERB Studio NO está en este repo: se descarga solo mientras
-# dura la prueba (clave de solo lectura) y el script que mide vive allí (`apps/studio/e2e/filtros-fluidez.mjs`). Aquí solo se lanza y se
-# recogen los resultados. No publica ninguna Release. Solo manual.
+# dura la prueba (clave de solo lectura) y el script que mide vive allí. Aquí solo se lanza y se recogen los resultados. No publica ninguna
+# Release. Solo manual.
 #
 # OJO con los números: las máquinas de GitHub no tienen tarjeta gráfica (Linux pinta por software y las de macOS tienen una GPU virtualizada),
 # así que los fps absolutos NO son los de un equipo real; sirven como coste RELATIVO entre los tres casos y para ver qué decide el vigilante.
 #
-# Contrato con el script (lo escribe la sesión de VERB Studio):
-#   node apps/studio/e2e/filtros-fluidez.mjs --browser=<webkit|chromium> --json=<ruta.json>
-#   → escribe un JSON con los fps/tirones de «sin filtro», «CRT completo» y «CRT ligero» y la decisión del vigilante; sale con 0 si midió
-#     (aunque vaya mal) y con otro código solo si no pudo medir.
+# Script (VERB Studio): `pnpm e2e:filtros-fluidez` = node apps/studio/e2e/filtros-fluidez.mjs --browser=<webkit|chromium> --seconds=5 --out=<json>
+# Arranca su propio editor de pruebas, exporta el garaje con el CRT, lo juega en el navegador elegido y mide sin filtro, CRT completo y CRT
+# ligero (vigilante apagado) y qué decide el vigilante. No falla por ir lento; solo sale con código distinto de 0 si no pudo medir. Su informe
+# en markdown sale por la salida estándar y aquí va al resumen de la ejecución.
 #
 # Secreto necesario: STUDIO_DEPLOY_KEY (la misma deploy key de solo lectura que usan runner.yml y builder.yml).
 
@@ -61,21 +61,17 @@ jobs:
         with:
           node-version: 22
       - run: pnpm install --frozen-lockfile
-      - name: Navegador de Playwright
-        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+      # Los dos: Chromium exporta el juego y se juega en el navegador que se pida.
+      - name: Navegadores de Playwright
+        run: pnpm exec playwright install --with-deps chromium webkit
       - name: Medir
         run: |
           mkdir -p "$RUNNER_TEMP/out"
-          node apps/studio/e2e/filtros-fluidez.mjs --browser=${{ matrix.browser }} --json="$RUNNER_TEMP/out/fluidez-${{ matrix.os }}-${{ matrix.browser }}.json"
-      - name: Resumen
-        if: always()
-        run: |
           {
             echo "### ${{ matrix.os }} · ${{ matrix.browser }}"
-            echo '```json'
-            cat "$RUNNER_TEMP"/out/*.json 2>/dev/null || echo '(sin resultados)'
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+            node apps/studio/e2e/filtros-fluidez.mjs --browser=${{ matrix.browser }} --seconds=5 --out="$RUNNER_TEMP/out/fluidez-${{ matrix.os }}-${{ matrix.browser }}.json"
+          } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          exit "${PIPESTATUS[0]}"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
