@@ -177,6 +177,11 @@ jobs:
           PLIST
           # Firma ad-hoc (sin certificado): sin ella, macOS en Apple Silicon dice que la app está dañada.
           codesign --force --deep --sign - "$app"
+          # El binario ya está dentro del .app: se libera la carpeta de compilación (varios GB con las dos arquitecturas) antes de crear el
+          # .dmg, porque con las plantillas Android dentro hdiutil se quedaba sin espacio («No space left on device»).
+          df -h . | tail -1
+          rm -rf target
+          df -h . | tail -1
           hdiutil create -volname "VERB Builder" -srcfolder dist-mac -ov -format UDZO "../out/${{ matrix.out }}"
 
       - uses: actions/upload-artifact@v7
