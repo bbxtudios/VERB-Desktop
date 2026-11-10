@@ -18,6 +18,10 @@ on:
         description: 'Etiqueta de la Release del Runner a meter dentro (p. ej. runner-v0.1.0). Vacío = la última runner-v*.'
         required: false
         default: ''
+      android:
+        description: 'Etiqueta de la Release de la plantilla Android (p. ej. runner-android-v0.1.0). Vacío = la última runner-android-v*. «none» = sin salida Android.'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -79,6 +83,23 @@ jobs:
           gh release download "$tag" -R "$GITHUB_REPOSITORY" -p 'verb-runner-*' -p 'SHA256SUMS.txt' -D runners
           (cd runners && tr -d '\r' < SHA256SUMS.txt | sha256sum -c -)
           chmod +x runners/verb-runner-macos runners/verb-runner-linux
+          ls -l runners
+
+      # La plantilla Android (APK y AAB, los mismos dos archivos en los tres sistemas) también va dentro del Builder, en la misma carpeta
+      # (VERB_RUNNERS_DIR). Es opcional para compilar, pero un Builder sin ella deja desactivada la salida Android.
+      - name: Plantilla del Runner Android (de la Release runner-android-v* de este repo)
+        run: |
+          atag="${{ inputs.android }}"
+          if [ "$atag" = "none" ]; then echo "Sin plantilla Android (android=none)."; exit 0; fi
+          if [ -z "$atag" ]; then
+            atag=$(gh release list -R "$GITHUB_REPOSITORY" --limit 50 --json tagName --jq '[.[] | select(.tagName | startswith("runner-android-v"))][0].tagName')
+          fi
+          [ -n "$atag" ] || { echo "No hay ninguna Release runner-android-v* en $GITHUB_REPOSITORY (lanza antes el workflow «VERB Runner Android» con versión, o pon android=none)."; exit 1; }
+          echo "Plantilla Android de $atag"
+          mkdir -p runners-android
+          gh release download "$atag" -R "$GITHUB_REPOSITORY" -p 'verb-runner-android.*' -p 'SHA256SUMS.txt' -D runners-android
+          (cd runners-android && tr -d '\r' < SHA256SUMS.txt | sha256sum -c -)
+          cp runners-android/verb-runner-android.apk runners-android/verb-runner-android.aab runners/
           ls -l runners
 
       - name: Versión del Builder
